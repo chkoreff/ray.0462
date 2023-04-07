@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# This assembles the demo and compares it with reference output.  If there is a
+# difference that I want to accept, I copy the tmp version back into ref.
+
+gcc -S -Wall -Werror -Wunused-parameter -Wdeclaration-after-statement -O3 \
+-I . demo.c -o tmp/demo.s || exit
+
+diff ref/demo.s tmp/

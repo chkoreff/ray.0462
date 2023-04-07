@@ -1,0 +1,10 @@
+#!/bin/sh
+. ./lib_build
+
+make demo
+objects="$objects ../raylib/src/rcore.o"
+objects="$objects ../raylib/src/rglfw.o"
+objects="$objects ../raylib/src/rmodels.o"
+objects="$objects ../raylib/src/rshapes.o"
+objects="$objects ../raylib/src/libraylib.a"
+link demo

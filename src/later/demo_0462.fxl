@@ -1,0 +1,417 @@
+# Create the executable code for a raylib graphics program and run it.
+\cx=(value; std; use "lib/run_1613.fxl")
+value; cx; \;
+
+\assign_numbers==
+    (
+    (@\loop\i\xs
+    xs [] \x\xs
+    \x=={i x}
+    \i=(+ 1 i)
+    [x; loop i xs]
+    ) 0
+    )
+
+\scale_iterate==
+    (@\loop\a\ad\b\bd\c\cd\ct
+    (eq ct 0)
+    []
+    [{a b c}; loop (+ a ad) ad (+ b bd) bd (+ c cd) cd (- ct 1)]
+    )
+
+#seed_rand 0.1964
+#\rand==random_double # LATER
+
+\random_int==
+    (\N
+    trunc;
+    * N rand
+    )
+
+# Make a version of f that traces input and output.
+\make_tracer==
+	(\name\f
+	\in
+	\in=in # force eval
+	\out=(f in)
+	trace_data
+		[
+		name
+		["in" in]
+		["out" out]
+		]
+	out
+	)
+
+\cconvRgbToXyz==
+	(
+	\scale==
+		(\v
+		\v=(/ v 255)
+		* 100;
+		gt v 0.04045
+			(^ (/ (+ v 0.055) 1.055) 2.4)
+			(/ v 12.92)
+		)
+
+	\color
+	color \rx\gx\bx
+
+	\vr=(scale rx)
+	\vg=(scale gx)
+	\vb=(scale bx)
+
+	{vr vg vb}
+	)
+
+# \cconvRgbToXyz=(make_tracer "cconvRgbToXyz" cconvRgbToXyz)
+
+\cconvLabToXyz==
+	(
+	\scale==
+		(\v
+		\v3=(^ v 3)
+		gt v3 0.00856
+			v3
+			(/ (- v (/ 16 116)) 7.787)
+		)
+
+	\color
+	color \lx\ax\bx
+
+	\vy=(/ (+ lx 16) 116)
+	\vx=(+ vy (/ ax 500))
+	\vz=(- vy (/ bx 200))
+
+	\vx=(* 94.811 (scale vx))
+	\vy=(* 100 (scale vy))
+	\vz=(* 107.304 (scale vz))
+
+	{vx vy vz}
+	)
+
+# \cconvLabToXyz=(make_tracer "cconvLabToXyz" cconvLabToXyz)
+
+\cconvXyzToRgb==
+	(
+	\scale==
+		(\v
+		* 255;
+		gt v 0.0031308
+			(* 1.055 (- (^ v (/ 1 2.4)) 0.055))
+			(* v 12.92)
+		)
+
+	\color
+	color \xx\yx\zx
+
+	\vx=(/ xx 100)
+	\vy=(/ yx 100)
+	\vz=(/ zx 100)
+
+	\vr=(ceil (scale; + (* vx  3.2406); + (* vy -1.5372) (* vz -0.4986)))
+	\vg=(ceil (scale; + (* vx -0.9689); + (* vy  1.8758) (* vz  0.0415)))
+	\vb=(ceil (scale; + (* vx  0.0557); + (* vy -0.2040) (* vz  1.0570)))
+
+	{vr vg vb}
+	)
+
+# \cconvXyzToRgb=(make_tracer "cconvXyzToRgb" cconvXyzToRgb)
+
+\cconvLabToRgb==
+	(\color
+	cconvXyzToRgb;
+	cconvLabToXyz color
+	)
+
+# \cconvLabToRgb=(make_tracer "cconvLabToRgb" cconvLabToRgb)
+
+\BuildColorEntry==
+	(\pair
+	pair \index\value
+	cconvLabToRgb value \rx\gx\bx
+	["colors[" index "] = (Color){" rx "," gx "," bx ",255};" NL]
+	)
+
+\BuildControlEvents==
+	(\list
+	["(" (join_list " || "; map (\key ["IsKeyDown(" key ")"]) list) ")" ]
+	)
+
+\KeyControlEvent==
+	(\id
+	eq id "shiftUp"
+		(BuildControlEvents ["KEY_W" "KEY_UP"    "KEY_KP_8"]);
+	eq id "shiftDown"
+		(BuildControlEvents ["KEY_S" "KEY_DOWN"  "KEY_KP_2"]);
+	eq id "shiftLeft"
+		(BuildControlEvents ["KEY_A" "KEY_LEFT"  "KEY_KP_4"]);
+	eq id "shiftRight"
+		(BuildControlEvents ["KEY_D" "KEY_RIGHT" "KEY_KP_6"]);
+	void
+	)
+
+\ManuLogic==
+	(\point
+	eq point "head"
+		(
+		# say "float manuX = 0.0;"
+		say "float manuY = 0.0;"
+		say "float manuZ = 0.0;"
+		say "Vector3 manuBoundFactor = (Vector3){ 0.0f, 0.0f, 0.0f };"
+		);
+	eq point "assign"
+		(
+		say ["manuY = (" (KeyControlEvent "shiftDown") ") ? 1.0f : ("
+				(KeyControlEvent "shiftUp") ")  ? -1.0f : 0.0f;"]
+		say ["manuZ = (" (KeyControlEvent "shiftLeft") ") ? -1.0f : ("
+				(KeyControlEvent "shiftRight") ") ? 1.0f : 0.0f;"]
+		say ["manuBoundFactor.y = "
+			"(manuY > 0) ? (fmax(0.0,(1.0 - (0.4 * (camera.position.y - 4.0))))) : "
+			"(manuY < 0) ? (fmax(0.0,(1.0 + (0.4 * (camera.position.y - 4.0))))) : 1.0;"]
+		say ["manuBoundFactor.z = "
+			"(manuZ > 0) ? (fmax(0.0,(1.0 - (0.1 * camera.position.z)))) : "
+			"(manuZ < 0) ? (fmax(0.0,(1.0 + (0.1 * camera.position.z)))) : "
+			"1.0;"]
+		# say [~ printf("TEST %f %f \n", manuZ, camera.position.z);~]
+		);
+	)
+
+\ColumnsLogic==
+	(\point
+	eq point "head"
+		(
+		say "// Generates some random columns"
+		say "float heights[MAX_COLUMNS] = { 0 };"
+		say "Vector3 positions[MAX_COLUMNS] = { 0 };"
+		say "Color colors[MAX_COLUMNS] = { 0 };"
+		say "int colsOffset = 0;"
+		say "float renderInterval = 16.0;"
+		say "float renderBound = renderInterval;"
+		);
+	# LATER 20230204 much more abstraction of the graphic scene here
+	eq point "randomize"
+		(
+		say "for (int i = colsOffset; i < (colsOffset + COL_INTERVAL); i++)"
+		scope
+			(
+			say "heights[i] = (float)GetRandomValue(1, 4);"
+			nl
+			say "positions[i] ="
+			indent
+				(
+				say "(Vector3)"
+				say "{"
+				say "((renderBound - renderInterval) + (float)GetRandomValue(0, 32)),"
+				say "heights[i]/2.0f,"
+				say "(float)GetRandomValue(-15, 15)"
+				say "};"
+				)
+			# nl
+			# say "colors[i] = (Color)"
+			# indent
+			# 	(
+			# 	say "{"
+			# 	say "GetRandomValue(20, 255),"
+			# 	say "GetRandomValue(10, 55),"
+			# 	say "30, 255"
+			# 	say "};"
+			# 	)
+			)
+		say "colsOffset = (colsOffset + COL_INTERVAL) % MAX_COLUMNS;"
+		);
+	eq point "generate"
+		(
+		say "BeginMode3D(camera);"
+
+		# Draw some cubes around
+		DrawPlane
+			["(renderBound - (0.4 * renderInterval))" "0.0" "0.0"]
+			["renderInterval" "2 * renderInterval"]
+			"(colsOffset == 0) ? DARKGRAY : LIGHTGRAY"
+
+		DrawPlane
+			["(renderInterval + (renderBound - (0.4 * renderInterval)))"
+				"0.0" "0.0"]
+			["renderInterval" "2 * renderInterval"]
+			"(colsOffset == 0) ? LIGHTGRAY : DARKGRAY"
+
+		say "for (int i = 0; i < MAX_COLUMNS; i++)"
+		scope
+			(
+			DrawWireCube
+			"positions[i]"
+			"2.0"
+			"heights[i]"
+			"2.0"
+			"colors[i]"
+			"MAROON"
+			)
+		say "EndMode3D();"
+		);
+	)
+
+\CameraInteractor==
+	(\manuFactor\inertia
+
+	\manuDelta=["Vector3Multiply(manuBoundFactor,Vector3Multiply("
+		(Vector3 manuFactor) ","
+		(Vector3 ["0.0" "manuY" "manuZ"]) "))"
+		]
+	\inerDelta=(Vector3 inertia)
+
+	say ["camera.position = Vector3Add(camera.position,"manuDelta");"]
+	say ["camera.target = Vector3Add(camera.target,"manuDelta");"]
+	say ["camera.position = Vector3Add(camera.position,"inerDelta");"]
+	say ["camera.target = Vector3Add(camera.target,"inerDelta");"]
+	)
+
+\RenderIterate==
+	(\arg
+	say "if (abs(camera.position.x) > renderBound) {"
+	indent
+		(
+		say "renderBound += renderInterval;"
+		# say [~ printf("TEST %f %f %f \n", manuZ);~]
+		ColumnsLogic "randomize"
+		ColumnsLogic "generate"
+		)
+	say "}"
+	)
+
+\InfoDisplay==
+	(\point
+	eq point "generate"
+		(
+		DrawWireRectangle "10" "10" "220" "70"
+			(Fade "SKYBLUE" "0.5") "BLUE"
+
+		DrawText "First person camera default controls:"
+			"20" "20" "10" "BLACK"
+
+		DrawText "- Move with keys: W, A, S, D"
+			"40" "40" "10" "DARKGRAY"
+
+		DrawText "- Mouse move to look around"
+			"40" "60" "10" "DARKGRAY"
+		);
+	)
+
+\gen_cube_demo==
+	(
+	\screenWidth=="800"
+	\screenHeight=="450"
+
+	\fps=="60"
+	#\fps=="120" # NOTE This is too fast, you can see the aliasing.
+
+	\background_color=="RAYWHITE"
+
+	\camera_mode=="CAMERA_FIRST_PERSON"
+	\camera_position==["0.0" "4.0" "0.0"]
+	\camera_target==["4.0" "4.0" "0.0"]
+	\camera_up==["0.0" "1.0" "0.0"]
+	\camera_fovy=="60.0"
+	\camera_projection=="CAMERA_PERSPECTIVE"
+
+	\max_columns=="40"
+	\col_interval=="20"
+        \color_dir1==(eq 0 (random_int 2) -1 1)
+        \color_dir2==(eq 0 (random_int 2) -1 1)
+
+	\routine
+
+	say "// raylib [core] example - 3d camera first person"
+	say "// Copyright (c) 2015-2022 Ramon Santamaria (@raysan5)"
+	nl
+	say "#include <stdlib.h>"
+	say "#include <stdio.h>"
+	say "#include <raylib.h>"
+	say "#include <raymath.h>"
+	say "#include <pthread.h>"
+	nl
+	say ["#define MAX_COLUMNS "max_columns]
+	say ["#define COL_INTERVAL "col_interval]
+	nl
+	say ["void "routine"(void)"]
+	scope
+		(
+		say ["const int screenWidth = "screenWidth";"]
+		say ["const int screenHeight = "screenHeight";"]
+		say "Camera camera = { 0 };"
+		say ["Vector3 startPosition = "(Vector3 camera_position)";"]
+		nl
+		ColumnsLogic "head"
+		ManuLogic "head"
+
+		say (map BuildColorEntry
+                         (assign_numbers (scale_iterate (* 15 rand) (* 2 rand)
+                                                        (* color_dir1 (* 8 rand))
+                                                        (* color_dir1 (* 0.1 rand))
+                                                        (* color_dir2 (* 8 rand))
+                                                        (* color_dir2 (* 0.1 rand))
+                                                        40)))
+
+		nl
+		say "InitWindow(screenWidth, screenHeight,"
+		say ~ "raylib [core] example - 3d camera first person"~
+		say ");"
+		nl
+		say ["// Define the camera to look into our 3d world"
+			" (position, target, up vector)"]
+		say "camera.position = startPosition;"
+		say ["camera.target = "(Vector3 camera_target)";"]
+		say ["camera.up = "(Vector3 camera_up)";"]
+		say ["camera.fovy = "camera_fovy";"]
+		say ["camera.projection = "camera_projection";"]
+		nl
+		ColumnsLogic "randomize"
+
+		say ["SetCameraMode(camera, "camera_mode");"]
+		say ["SetTargetFPS("fps");"]
+		nl
+		say "// Main game loop"
+		say ["while (!WindowShouldClose())"
+			" // Detect window close button or ESC key"]
+		scope
+			(
+			# say "UpdateCamera(&camera);"
+			ManuLogic "assign"
+			CameraInteractor ["0.0" "0.1" "0.1"] ["0.06" "0.0" "0.0"]
+			RenderIterate 10
+			nl
+			# say [~ printf("TEST %f \n", camera.position.x);~]; nl
+			say "BeginDrawing();"
+			say ["ClearBackground("background_color");"]
+			nl
+			ColumnsLogic "generate"
+			InfoDisplay "generate"
+			nl
+			say "EndDrawing();"
+			)
+		nl
+		say "CloseWindow(); // Close window and OpenGL context"
+		say "return;"
+		)
+	nl
+	)
+
+\gen_main==
+	(\routine
+	say "int main(void)"
+	scope
+		(
+		say [""routine"();"]
+		say "return 0;"
+		)
+	)
+
+# Add the main program.
+\gen_source==
+	(
+	\routine=="ray_win_display"
+	gen_cube_demo routine
+	gen_main routine
+	)
+
+run_demo gen_source
