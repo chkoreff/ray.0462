@@ -17,7 +17,7 @@ A window will appear in which you fly through a rolling 3D landscape of random
 blocks.  You can use the arrow keys to move in various ways, or some other keys
 like S, W, A, and D.
 
-## Test
+### Test
 
 The following script assembles the demo code and diffs it against a reference
 output.  I use it as I refactor the code, as a gauge of size and speed.  When
@@ -27,7 +27,7 @@ I see a change that is acceptable, I copy the tmp/demo.s back into ref/demo.s.
 ./test_asm
 ```
 
-## Utilities
+### Utilities
 
 The demo script automatically builds the code and runs it, but you can also run
 the build script directly if you like, e.g.:
