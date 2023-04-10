@@ -1,7 +1,9 @@
 #!/bin/sh
 . ./lib_build
 
+make color
 make demo
+
 objects="$objects ../raylib/src/rcore.o"
 objects="$objects ../raylib/src/rglfw.o"
 objects="$objects ../raylib/src/rmodels.o"
