@@ -30,21 +30,16 @@ static float manuY = 0.0;
 static float manuZ = 0.0;
 static Vector3 manuBoundFactor = (Vector3){ 0.0f, 0.0f, 0.0f };
 
-// Return weak random number in range (0 <= r < 1).
+// Return a weak random double in range (0 <= r <= 1).
 double get_rand(void)
 	{
-	int n = rand();
-	if (n >= RAND_MAX)
-		return 0;
-	else
-		return ((double)n) / ((double)RAND_MAX);
+	return (double)rand() / (double)RAND_MAX;
 	}
 
-// Return weak random int in range (0 <= r < N).
-// LATER Possibly use GetRandomValue from raylib.
-int random_int(int N)
+// Return a weak random bit.
+static int random_bit(void)
 	{
-	return N * get_rand();
+	return rand() % 2;
 	}
 
 typedef struct triple
@@ -149,8 +144,8 @@ triple color_lab_rgb(triple color)
 
 static void init_colors(void)
 	{
-	int color_dir1 = (random_int(2) == 0 ? -1 : 1);
-	int color_dir2 = (random_int(2) == 0 ? -1 : 1);
+	int color_dir1 = (random_bit() ? -1 : 1);
+	int color_dir2 = (random_bit() ? -1 : 1);
 
 	double a = 15 * get_rand();
 	double ad = 2 * get_rand();
@@ -208,8 +203,6 @@ static void draw_instructions(void)
 	DrawText("- Move with keys: W, A, S, D", 40, 40, 10, DARKGRAY);
 	DrawText("- Mouse move to look around", 40, 60, 10, DARKGRAY);
 	}
-
-// UpdateCamera(&camera); // LATER I guess we don't need this anywhere.
 
 static float clip_delta(float delta, float offset)
 	{

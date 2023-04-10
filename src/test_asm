@@ -19,4 +19,5 @@ if [ ! -e $ref ]; then
 	cp -p $tmp $ref
 fi
 
-diff $ref $tmp
+diff $ref $tmp && exit
+ls -l $ref $tmp
