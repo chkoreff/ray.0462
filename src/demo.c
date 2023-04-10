@@ -109,7 +109,7 @@ static double scale_0813(double v)
 	else
 		v *= 12.92;
 
-	return 255 * v;
+	return ceil(255 * v);
 	}
 
 triple color_xyz_rgb(triple color)
@@ -122,17 +122,9 @@ triple color_xyz_rgb(triple color)
 	double vy = yx / 100;
 	double vz = zx / 100;
 
-	double vr = ceil(scale_0813(
-		(vx  * 3.2406) + (vy * -1.5372) + (vz * -0.4986)
-		));
-
-	double vg = ceil(scale_0813(
-		(vx * -0.9689) + (vy * 1.8758) + (vz * 0.0415)
-		));
-
-	double vb= ceil(scale_0813(
-		(vx * 0.0557) + (vy * -0.2040) + (vz * 1.0570)
-		));
+	double vr = scale_0813((vx  * 3.2406) + (vy * -1.5372) + (vz * -0.4986));
+	double vg = scale_0813((vx * -0.9689) + (vy *  1.8758) + (vz *  0.0415));
+	double vb = scale_0813((vx *  0.0557) + (vy * -0.2040) + (vz *  1.0570));
 
 	return (triple){ vr, vg, vb };
 	}
