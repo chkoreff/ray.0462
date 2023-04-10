@@ -156,7 +156,7 @@ static void init_colors(void)
 	double c = color_dir2 * 8 * get_rand();
 	double cd = color_dir2 * 0.1 * get_rand();
 
-	for (int i = 0; i < 40; i++)
+	for (int i = 0; i < MAX_COLUMNS; i++)
 		{
 		triple color = color_lab_rgb((triple){a, b, c});
 		colors[i] = (Color){ color.x, color.y, color.z, 255 };
