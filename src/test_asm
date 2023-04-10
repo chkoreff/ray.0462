@@ -1,9 +1,22 @@
 #!/bin/sh
 
 # This assembles the demo and compares it with reference output.  If there is a
-# difference that I want to accept, I copy the tmp version back into ref.
+# difference that I want to accept, I copy the tmp version back into ref, or
+# do a "./build erase" to start over.
+
+dir=../cache/test_asm
+
+tmp=$dir/tmp/demo.s
+ref=$dir/ref/demo.s
+
+mkdir -p $(dirname $tmp)
 
 gcc -S -Wall -Werror -Wunused-parameter -Wdeclaration-after-statement -O3 \
--I . demo.c -o tmp/demo.s || exit
+-I . demo.c -o $tmp || exit
 
-diff ref/demo.s tmp/
+if [ ! -e $ref ]; then
+	mkdir -p $(dirname $ref)
+	cp -p $tmp $ref
+fi
+
+diff $ref $tmp

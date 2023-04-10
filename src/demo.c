@@ -1,5 +1,5 @@
 // raylib [core] example - 3d camera first person
-// Copyright (c) 2015-2022 Ramon Santamaria (@raysan5)
+// Adapted from: Copyright (c) 2015-2022 Ramon Santamaria (@raysan5)
 //
 // References:
 // https://www.raylib.com/cheatsheet/cheatsheet.html
@@ -10,6 +10,7 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <pthread.h>
+#include <time.h>
 
 #define MAX_COLUMNS 40
 #define COL_INTERVAL 20
@@ -29,70 +30,146 @@ static float manuY = 0.0;
 static float manuZ = 0.0;
 static Vector3 manuBoundFactor = (Vector3){ 0.0f, 0.0f, 0.0f };
 
-/*
-LATER Generate these colors from the color transformation functions:
+// Return weak random number in range (0 <= r < 1).
+double get_rand(void)
+	{
+	int n = rand();
+	if (n >= RAND_MAX)
+		return 0;
+	else
+		return ((double)n) / ((double)RAND_MAX);
+	}
 
-  cconvLabToRgb
+// Return weak random int in range (0 <= r < N).
+// LATER Possibly use GetRandomValue from raylib.
+int random_int(int N)
+	{
+	return N * get_rand();
+	}
 
-  cconvXyzToRgb
-  cconvLabToXyz
+typedef struct triple
+	{
+	double x;
+	double y;
+	double z;
+	} triple;
 
-Also define this, not used yet:
-  cconvRgbToXyz
+// LATER 20230409 Create test suites for color conversions.
 
-LATER:  A Fexl scripting interface could look something like this:
+static double scale_4117(double v)
+	{
+	v /= 255.0;
+	if (v > 0.04045)
+		v = pow((v+0.055)/1.055, 2.4);
+	else
+		v /= 12.92;
 
-	\color=(create_random_color)
-	put_color color
+	return 100 * v;
+	}
 
-The C code would call that 40 times, incrementing the position and poking the
-color values into the colors array.  It's not necessary to do that in Fexl, but
-it might be a good example of embedding a tiny scripting language into the C
-code.
-*/
+triple color_rgb_xyz(triple color)
+	{
+	double rx = color.x;
+	double gx = color.y;
+	double bx = color.z;
+
+	double vr = scale_4117(rx);
+	double vg = scale_4117(gx);
+	double vb = scale_4117(bx);
+
+	return (triple){ vr, vg, vb };
+	}
+
+static double scale_7761(double v)
+	{
+	double v3 = pow(v,3);
+	if (v3 > 0.00856)
+		return v3;
+	else
+		// LATER check this case, we never hit it.
+		return (v - 16.0/116.0) / 7.787;
+	}
+
+triple color_lab_xyz(triple color)
+	{
+	double lx = color.x;
+	double ax = color.y;
+	double bx = color.z;
+
+	double vy = (lx+16) / 116;
+	double vx = vy + ax/500;
+	double vz = vy - bx/200;
+
+	vx = 94.811 * scale_7761(vx);
+	vy = 100 * scale_7761(vy);
+	vz = 107.304 * scale_7761(vz);
+
+	return (triple){vx,vy,vz};
+	}
+
+static double scale_0813(double v)
+	{
+	if (v > 0.0031308)
+		v = 1.055 * (pow(v,(1.0/2.4)) - 0.055);
+	else
+		v *= 12.92;
+
+	return 255 * v;
+	}
+
+triple color_xyz_rgb(triple color)
+	{
+	double xx = color.x;
+	double yx = color.y;
+	double zx = color.z;
+
+	double vx = xx / 100;
+	double vy = yx / 100;
+	double vz = zx / 100;
+
+	double vr = ceil(scale_0813(
+		(vx  * 3.2406) + (vy * -1.5372) + (vz * -0.4986)
+		));
+
+	double vg = ceil(scale_0813(
+		(vx * -0.9689) + (vy * 1.8758) + (vz * 0.0415)
+		));
+
+	double vb= ceil(scale_0813(
+		(vx * 0.0557) + (vy * -0.2040) + (vz * 1.0570)
+		));
+
+	return (triple){ vr, vg, vb };
+	}
+
+triple color_lab_rgb(triple color)
+	{
+	return color_xyz_rgb(color_lab_xyz(color));
+	}
 
 static void init_colors(void)
 	{
-	colors[0] = (Color){27,35,22,255};
-	colors[1] = (Color){19,11,6,255};
-	colors[2] = (Color){30,43,44,255};
-	colors[3] = (Color){30,28,39,255};
-	colors[4] = (Color){31,30,26,255};
-	colors[5] = (Color){37,41,34,255};
-	colors[6] = (Color){46,47,42,255};
-	colors[7] = (Color){34,20,21,255};
-	colors[8] = (Color){44,31,24,255};
-	colors[9] = (Color){43,45,35,255};
-	colors[10] = (Color){45,30,28,255};
-	colors[11] = (Color){52,59,49,255};
-	colors[12] = (Color){43,36,41,255};
-	colors[13] = (Color){68,60,62,255};
-	colors[14] = (Color){70,59,62,255};
-	colors[15] = (Color){62,64,62,255};
-	colors[16] = (Color){52,40,36,255};
-	colors[17] = (Color){59,65,71,255};
-	colors[18] = (Color){76,72,59,255};
-	colors[19] = (Color){54,63,69,255};
-	colors[20] = (Color){67,79,85,255};
-	colors[21] = (Color){79,66,57,255};
-	colors[22] = (Color){69,81,65,255};
-	colors[23] = (Color){67,70,62,255};
-	colors[24] = (Color){96,87,82,255};
-	colors[25] = (Color){61,80,81,255};
-	colors[26] = (Color){95,105,109,255};
-	colors[27] = (Color){54,59,68,255};
-	colors[28] = (Color){95,93,102,255};
-	colors[29] = (Color){92,77,72,255};
-	colors[30] = (Color){88,79,89,255};
-	colors[31] = (Color){65,69,80,255};
-	colors[32] = (Color){80,70,70,255};
-	colors[33] = (Color){64,81,78,255};
-	colors[34] = (Color){122,111,124,255};
-	colors[35] = (Color){118,126,109,255};
-	colors[36] = (Color){83,82,96,255};
-	colors[37] = (Color){102,108,109,255};
-	colors[38] = (Color){92,95,95,255};
-	colors[39] = (Color){118,115,130,255};
+	int color_dir1 = (random_int(2) == 0 ? -1 : 1);
+	int color_dir2 = (random_int(2) == 0 ? -1 : 1);
+
+	double a = 15 * get_rand();
+	double ad = 2 * get_rand();
+
+	double b = color_dir1 * 8 * get_rand();
+	double bd = color_dir1 * 0.1 * get_rand();
+
+	double c = color_dir2 * 8 * get_rand();
+	double cd = color_dir2 * 0.1 * get_rand();
+
+	for (int i = 0; i < 40; i++)
+		{
+		triple color = color_lab_rgb((triple){a, b, c});
+		colors[i] = (Color){ color.x, color.y, color.z, 255 };
+
+		a += ad;
+		b += bd;
+		c += cd;
+		}
 	}
 
 // Define the camera to look into our 3d world (position, target, up vector)
@@ -248,6 +325,11 @@ static void draw_frame(void)
 
 static void ray_win_display(void)
 	{
+	{
+	time_t t = time(0);
+	srand(t);
+	}
+
 	init_colors();
 
 	InitWindow(screenWidth, screenHeight,

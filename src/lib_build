@@ -145,6 +145,7 @@ erase()
 	rm -rf ../obj
 	rm -rf ../lib
 	rm -rf ../bin
+	rm -rf ../cache
 	}
 
 case "$1" in
