@@ -19,7 +19,7 @@
 static const int screenWidth = 800;
 static const int screenHeight = 450;
 static Camera camera = { 0 };
-static const Vector3 startPosition = (Vector3){ 0.0, 4.0, 0.0 };
+static const Vector3 startPosition = { 0.0, 4.0, 0.0 };
 
 static float heights[MAX_COLUMNS] = { 0 };
 static Vector3 positions[MAX_COLUMNS] = { 0 };
@@ -29,7 +29,7 @@ static const float renderInterval = 16.0;
 static float renderBound = renderInterval;
 static float manuY = 0.0;
 static float manuZ = 0.0;
-static Vector3 manuBoundFactor = (Vector3){ 0.0f, 0.0f, 0.0f };
+static Vector3 manuBoundFactor = { 0.0f, 0.0f, 0.0f };
 
 // Return a weak random double in range (0 <= r <= 1).
 double get_rand(void)
@@ -45,26 +45,36 @@ static int random_bit(void)
 
 static void init_colors(void)
 	{
-	int color_dir1 = (random_bit() ? -1 : 1);
-	int color_dir2 = (random_bit() ? -1 : 1);
-
-	double a = 15 * get_rand();
-	double ad = 2 * get_rand();
-
-	double b = color_dir1 * 8 * get_rand();
-	double bd = color_dir1 * 0.1 * get_rand();
-
-	double c = color_dir2 * 8 * get_rand();
-	double cd = color_dir2 * 0.1 * get_rand();
+	int color_dir1, color_dir2;
+	double a=0, ad=0, b=0, bd=0, c=0, cd=0;
 
 	for (int i = 0; i < MAX_COLUMNS; i++)
 		{
+		if (0 == i % 10)
+			{
+			color_dir1 = (random_bit() ? -1 : 1);
+			color_dir2 = (random_bit() ? -1 : 1);
+
+			a = 50 * get_rand();
+			ad = 5 * get_rand();
+
+			b = color_dir1 * 40 * get_rand();
+			bd = color_dir1 * 8 * get_rand();
+
+			c = color_dir2 * 40 * get_rand();
+			cd = color_dir2 * 8 * get_rand();
+			}
+		else
+			{
+			a += ad;
+			b += bd;
+			c += cd;
+			}
+
+		{
 		triple color = color_lab_rgb((triple){a, b, c});
 		colors[i] = (Color){ color.x, color.y, color.z, 255 };
-
-		a += ad;
-		b += bd;
-		c += cd;
+		}
 		}
 	}
 
