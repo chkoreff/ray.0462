@@ -245,6 +245,8 @@ static void ray_win_display(void)
 
 	colsOffset = (colsOffset + COL_INTERVAL) % MAX_COLUMNS;
 	SetCameraMode(camera, CAMERA_FIRST_PERSON);
+	// Setting the camera mode disables the cursor so I enable it here.
+	EnableCursor();
 	SetTargetFPS(60);
 
 	// Main game loop
